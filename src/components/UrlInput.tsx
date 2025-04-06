@@ -1,6 +1,7 @@
+// src/components/UrlInput.tsx
 import { useState } from "react";
 import axios from "axios";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, RotateCcw } from "lucide-react";
 
 const UrlInput = () => {
   const [url, setUrl] = useState("");
@@ -27,6 +28,12 @@ const UrlInput = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetForm = () => {
+    setUrl("");
+    setVideo(null);
+    setError("");
   };
 
   return (
@@ -66,13 +73,21 @@ const UrlInput = () => {
             alt="thumbnail"
             className="w-full max-w-xs mx-auto rounded-xl shadow"
           />
-          <a
-            href={`http://localhost:5000${video.downloadUrl}`}
-            download
-            className="inline-flex items-center gap-2 mt-4 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl"
-          >
-            <Download size={18} /> Download Video
-          </a>
+          <div className="mt-4 flex flex-col sm:flex-row justify-center gap-3">
+            <a
+              href={`http://localhost:5000${video.downloadUrl}`}
+              download
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl"
+            >
+              <Download size={18} /> Download Video
+            </a>
+            <button
+              onClick={resetForm}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-black dark:text-white font-semibold rounded-xl"
+            >
+              <RotateCcw size={18} /> New Link
+            </button>
+          </div>
         </div>
       )}
     </div>
