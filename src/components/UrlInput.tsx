@@ -67,9 +67,8 @@ const UrlInput = () => {
             className="w-full max-w-xs mx-auto rounded-xl shadow"
           />
           <a
-            href={video.downloadUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+            href={`http://localhost:5000${video.downloadUrl}`}
+            download
             className="inline-flex items-center gap-2 mt-4 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl"
           >
             <Download size={18} /> Download Video
