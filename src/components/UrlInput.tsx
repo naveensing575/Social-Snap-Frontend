@@ -1,95 +1,125 @@
-// src/components/UrlInput.tsx
 import { useState } from "react";
 import axios from "axios";
-import { Loader2, Download, RotateCcw } from "lucide-react";
+import { Download } from "lucide-react";
+import { ClipLoader } from "react-spinners";
+
+interface FormatOption {
+  format_id: string;
+  ext: string;
+  resolution: string;
+  isAudio: boolean;
+  isVideo: boolean;
+  url: string;
+}
 
 const UrlInput = () => {
   const [url, setUrl] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [video, setVideo] = useState<{
-    title: string;
-    thumbnail: string;
-    downloadUrl: string;
-  } | null>(null);
+  const [formats, setFormats] = useState<FormatOption[]>([]);
+  const [title, setTitle] = useState("");
+  const [thumbnail, setThumbnail] = useState("");
+  const [selectedFormat, setSelectedFormat] = useState<FormatOption | null>(
+    null
+  );
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async () => {
-    setError("");
-    setLoading(true);
-    setVideo(null);
-
+  const handleFetchFormats = async () => {
+    setIsLoading(true);
     try {
-      const response = await axios.post("http://localhost:5000/api/download", {
+      const res = await axios.post("http://localhost:5000/api/formats", {
         url,
       });
-      setVideo(response.data);
-    } catch (err: any) {
-      setError(err.response?.data?.error || "Something went wrong.");
+      setTitle(res.data.title);
+      setThumbnail(res.data.thumbnail);
+      setFormats(
+        res.data.formats.filter(
+          (f: FormatOption) => f.isVideo && f.ext === "mp4"
+        )
+      );
+      setSelectedFormat(null);
+    } catch {
+      alert("Failed to fetch formats. Check the URL.");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const resetForm = () => {
-    setUrl("");
-    setVideo(null);
-    setError("");
+  const getDownloadLink = () => {
+    if (!selectedFormat) return "#";
+    return `http://localhost:5000/api/stream?videoUrl=${encodeURIComponent(
+      selectedFormat.url
+    )}&title=${encodeURIComponent(title)}`;
   };
 
   return (
-    <div className="w-full max-w-lg p-6 rounded-2xl shadow-xl bg-white dark:bg-zinc-800">
-      <h2 className="text-xl font-semibold mb-4 text-center">
-        Paste URL to Download
-      </h2>
-      <input
-        type="text"
-        placeholder="Enter YouTube or Social Media URL..."
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        className="w-full p-3 border border-gray-300 rounded-xl mb-4 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-      <button
-        onClick={handleSubmit}
-        disabled={loading || !url.trim()}
-        className="w-full flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-xl"
-      >
-        {loading ? (
-          <Loader2 className="animate-spin" size={20} />
-        ) : (
-          <Download size={20} />
-        )}
-        {loading ? "Fetching..." : "Get Download Link"}
-      </button>
+    <div className="w-full max-w-xl p-6 bg-white shadow rounded-lg mx-auto mt-6">
+      <div className="space-y-4">
+        <input
+          type="text"
+          placeholder="Paste YouTube URL..."
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          className="w-full p-3 border border-gray-300 rounded text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
 
-      {error && (
-        <div className="mt-4 text-red-500 text-sm text-center">{error}</div>
-      )}
+        <button
+          onClick={handleFetchFormats}
+          className="w-full flex justify-center items-center gap-2 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded disabled:opacity-50"
+          disabled={isLoading ?? !url}
+        >
+          {isLoading ? <ClipLoader size={20} color="#fff" /> : "Fetch Formats"}
+        </button>
 
-      {video && (
-        <div className="mt-6 text-center">
-          <h3 className="font-medium text-lg mb-2">{video.title}</h3>
-          <img
-            src={video.thumbnail}
-            alt="thumbnail"
-            className="w-full max-w-xs mx-auto rounded-xl shadow"
-          />
-          <div className="mt-4 flex flex-col sm:flex-row justify-center gap-3">
-            <a
-              href={`http://localhost:5000${video.downloadUrl}`}
-              download
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl"
-            >
-              <Download size={18} /> Download Video
-            </a>
-            <button
-              onClick={resetForm}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-black dark:text-white font-semibold rounded-xl"
-            >
-              <RotateCcw size={18} /> New Link
-            </button>
+        {title && (
+          <div className="text-center mt-6">
+            <h2 className="text-lg font-semibold mb-2">{title}</h2>
+            {thumbnail && (
+              <img
+                src={thumbnail}
+                alt="thumbnail"
+                className="w-full max-w-md mx-auto rounded"
+              />
+            )}
           </div>
-        </div>
-      )}
+        )}
+
+        {formats.length > 0 && (
+          <div className="mt-4">
+            <label className="block mb-1 text-sm font-medium">
+              Choose Format:
+            </label>
+            <select
+              className="w-full p-2 border border-gray-300 rounded text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => {
+                const id = e.target.value;
+                const selected =
+                  formats.find((f) => f.format_id === id) ?? null;
+                setSelectedFormat(selected);
+              }}
+              value={selectedFormat?.format_id ?? ""}
+            >
+              <option value="" disabled>
+                Select quality
+              </option>
+              {formats.map((f) => (
+                <option key={f.format_id} value={f.format_id}>
+                  {f.resolution} ({f.ext})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {selectedFormat && (
+          <a
+            href={getDownloadLink()}
+            download
+            className="inline-flex items-center justify-center gap-2 mt-6 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl w-full text-center"
+          >
+            <Download size={18} />
+            Download Video
+          </a>
+        )}
+      </div>
     </div>
   );
 };
